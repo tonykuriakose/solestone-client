@@ -1,10 +1,20 @@
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { createContext, useContext, ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+
+type User = {
+  id: string;
+  email: string;
+  name?: string;
+  createdAt: Date;
+  googleId?: string;
+};
 
 type AuthContextType = {
   user: User | null;
   login: (credentials: { email: string; password: string }) => Promise<void>;
+  signup: (credentials: { email: string; password: string; name: string }) => Promise<void>;
   logout: () => void;
   googleLogin: () => void;
 };
@@ -19,11 +29,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
 
-  const login = async (credentials: { email: string; password: string }) => {
-    const { data } = await axios.post('/api/auth/login', credentials);
+  const signup = async (credentials: { email: string; password: string; name: string }) => {
+    const { data } = await axios.post<{ user: User; token: string }>(
+      `${import.meta.env.VITE_API_URL}/api/auth/signup`,
+      credentials
+    );
+    
     setUser(data.user);
     localStorage.setItem('token', data.token);
   };
+
+  const login = async (credentials: { email: string; password: string }) => {
+    const { data } = await axios.post<{ user: User; token: string }>(`${import.meta.env.VITE_API_URL}/api/auth/login`, credentials);
+    setUser(data.user);
+    localStorage.setItem('token', data.token);
+  };
+
 
   const logout = () => {
     setUser(null);
@@ -36,7 +57,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, googleLogin }}>
+    <AuthContext.Provider value={{ user, signup , login, logout, googleLogin }}>
       {children}
     </AuthContext.Provider>
   );

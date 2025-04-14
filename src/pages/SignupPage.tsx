@@ -8,13 +8,13 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const { login } = useAuth();
+  const { signup } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await login({ email, password, name });
+      await signup({ email, password, name });
       navigate('/');
     } catch (err) {
       setError('Registration failed. Please try again.');

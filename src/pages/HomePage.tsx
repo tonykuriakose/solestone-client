@@ -6,6 +6,8 @@ import TaskFilters from '../components/tasks/TaskFilters';
 import { TaskFilters as TaskFiltersType } from '../types';
 
 export default function HomePage() {
+  console.log("Home page");
+  
   const [openForm, setOpenForm] = useState(false);
   const [filters, setFilters] = useState<TaskFiltersType>({});
 
