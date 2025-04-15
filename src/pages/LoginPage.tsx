@@ -1,12 +1,13 @@
 import { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { 
   Container, 
   TextField, 
   Button, 
   Typography, 
   Stack, 
-  Divider 
+  Divider,
+  Link 
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,13 +16,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { login, googleLogin } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await login({ email, password });
-      navigate('/');
+      await login({ email, password }); // navigate handled in context
     } catch (err) {
       setError('Invalid email or password');
     }
@@ -74,12 +73,13 @@ export default function LoginPage() {
 
         <Typography align="center">
           Don't have an account?{' '}
-          <Button 
-            onClick={() => navigate('/signup')}
+          <Link 
+            component={RouterLink} 
+            to="/signup" 
             sx={{ textTransform: 'none' }}
           >
             Sign up
-          </Button>
+          </Link>
         </Typography>
       </Stack>
     </Container>

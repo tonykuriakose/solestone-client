@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import {Button,Container,TextField,Typography,MenuItem,Paper,Stack,} from '@mui/material';
-import {Task,TaskFilters,TaskPriority,TaskStatus,} from '../types'; 
-import { fetchTasks,createTask } from '../api'; 
-import { useAuth } from '../contexts/AuthContext';
+import {
+  Button,
+  Container,
+  TextField,
+  Typography,
+  MenuItem,
+  Paper,
+  Stack,
+} from '@mui/material';
+import { useAuth, Task, TaskFilters, TaskPriority, TaskStatus } from '../contexts/AuthContext';
+import { fetchTasks, createTask } from '../api/authApi';
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
@@ -37,30 +44,26 @@ const HomePage: React.FC = () => {
     loadTasks();
   }, [filters]);
 
-
   const handleAddTask = async () => {
-    console.log("handle task");
-    
     if (!newTask.title.trim()) return;
-  
+
     const task: Partial<Task> = {
       title: newTask.title,
       description: newTask.description || '',
-      dueDate: newTask.dueDate ? new Date(newTask.dueDate) : undefined, 
+      dueDate: newTask.dueDate ? new Date(newTask.dueDate) : undefined,
       status: newTask.status,
       priority: newTask.priority,
       tags: newTask.tags ? newTask.tags.split(',').map(tag => tag.trim()) : [],
     };
-  
+
     try {
-      const savedTask = await createTask(task); 
-      console.log(savedTask);
-      
-      setTasks(prev => [savedTask, ...prev]); 
+      const savedTask = await createTask(task);
+      setTasks(prev => [savedTask, ...prev]);
     } catch (err) {
       console.error('Failed to create task:', err);
     }
-  
+
+    // Reset the form
     setNewTask({
       title: '',
       description: '',
@@ -70,8 +73,14 @@ const HomePage: React.FC = () => {
       tags: '',
     });
   };
-  
-  
+
+  if (!user) {
+    return (
+      <Container maxWidth="sm" sx={{ mt: 8 }}>
+        <Typography variant="h5" align="center">Please login to view your tasks.</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
@@ -79,6 +88,7 @@ const HomePage: React.FC = () => {
         Your Tasks
       </Typography>
 
+      {/* Add New Task */}
       <Paper sx={{ p: 2, mb: 4 }}>
         <Typography variant="h6">Add New Task</Typography>
         <Stack spacing={2} mt={2}>
@@ -143,6 +153,7 @@ const HomePage: React.FC = () => {
         </Stack>
       </Paper>
 
+      {/* Filters */}
       <Stack direction="row" spacing={2} mb={3}>
         <TextField
           label="Search by title"
@@ -190,6 +201,7 @@ const HomePage: React.FC = () => {
         </TextField>
       </Stack>
 
+      {/* Task List */}
       {tasks.length === 0 ? (
         <Typography>No tasks found.</Typography>
       ) : (
