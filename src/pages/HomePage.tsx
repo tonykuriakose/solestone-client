@@ -1,36 +1,46 @@
-import { useState } from 'react';
-import { Button, Container, Typography, Stack } from '@mui/material';
-import TaskList from '../components/tasks/TaskList';
-import TaskForm from '../components/tasks/TaskForm';
-import TaskFilters from '../components/tasks/TaskFilters';
-import { TaskFilters as TaskFiltersType } from '../types';
+import React, { useEffect, useState } from 'react';
+import { Task, TaskFilters, TaskStatus } from '../types';
+import { fetchTasks } from '../api';
 
-export default function HomePage() {
-  console.log("Home page");
-  
-  const [openForm, setOpenForm] = useState(false);
-  const [filters, setFilters] = useState<TaskFiltersType>({});
+const HomePage: React.FC = () => {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [filters, setFilters] = useState<TaskFilters>({});
+
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const fetchedTasks = await fetchTasks(filters);
+        setTasks(fetchedTasks);
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+      }
+    };
+
+    loadTasks();
+  }, [filters]);
+
+  const handleFilterChange = (newFilters: TaskFilters) => {
+    setFilters(newFilters);
+  };
 
   return (
-    <Container maxWidth="md">
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4">My Tasks</Typography>
-        <Button 
-          variant="contained" 
-          onClick={() => setOpenForm(true)}
-          sx={{ textTransform: 'none' }}
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Your Tasks</h2>
+
+      {tasks.map((task) => (
+        <div
+          key={task.id}
+          className="border p-4 mb-2 rounded shadow-sm bg-white"
         >
-          New Task
-        </Button>
-      </Stack>
-
-      <TaskFilters onFilterChange={setFilters} />
-      <TaskList filters={filters} />
-
-      <TaskForm 
-        open={openForm} 
-        handleClose={() => setOpenForm(false)}
-      />
-    </Container>
+          <h3 className="font-semibold">{task.title}</h3>
+          <p>Status: {task.status}</p>
+          <p>Priority: {task.priority}</p>
+          <p>Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}</p>
+          <p>{task.status === TaskStatus.DONE ? '✔️ Completed' : '❌ Incomplete'}</p>
+        </div>
+      ))}
+    </div>
   );
-}
+};
+
+export default HomePage;

@@ -1,218 +1,203 @@
-import { useState, useRef, useEffect, FormEvent } from 'react';
-import {
-  Box,
-  List,
-  ListItem,
-  ListItemText,
-  TextField,
-  IconButton,
-  CircularProgress,
-  Typography,
+import { useState, useRef, useEffect } from 'react';
+import { 
+  Box, 
+  TextField, 
+  Button, 
+  Typography, 
+  CircularProgress, 
+  Paper,
   Avatar,
+  Divider,
+  IconButton
 } from '@mui/material';
-import { Send } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
+import SendIcon from '@mui/icons-material/Send';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import PersonIcon from '@mui/icons-material/Person';
+import { Task } from '../../types';
 
-type Message = {
+interface ChatMessage {
   id: string;
   content: string;
-  isUser: boolean;
+  sender: 'user' | 'ai';
   timestamp: Date;
-};
+}
 
-export default function TaskChat() {
-  const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+interface TaskChatProps {
+  tasks: Task[];
+}
+
+export default function TaskChat({ tasks }: TaskChatProps) {
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'system-1',
+      content: "Hi there! I'm your AI assistant. Ask me anything about your tasks, like 'What tasks are due today?' or 'How many high priority tasks do I have?'",
+      sender: 'ai',
+      timestamp: new Date()
+    }
+  ]);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
+  
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || !user) return;
-
-    // Add user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
+  
+  const handleSendMessage = async () => {
+    if (!input.trim()) return;
+    
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
       content: input,
-      isUser: true,
+      sender: 'user',
       timestamp: new Date()
     };
-
-  
-interface AIMessageResponse {
-    success: boolean;
-    response: string;
-    error?: string;
-    // Add other fields if needed from your backend
-  }
-  
-interface ChatMessage {
-    id: string;
-    content: string;
-    isUser: boolean;
-    timestamp: Date;
-    // Optional metadata if needed
-    metadata?: {
-      type?: 'task_list' | 'summary' | 'suggestion';
-      tasks?: Task[]; // Reference your existing Task type
-    };
-  }
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
     
-
+    setMessages(prevMessages => [...prevMessages, userMessage]);
+    setInput('');
+    setLoading(true);
+    
     try {
-      // Send to AI service
-      const { data } = await axios.post(
-        `${import.meta.env.VITE_AI_SERVICE_URL}/ai/chat`,
-        { query: input },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        }
-      );
-
-  
-      const aiMessage: Message = {
-        id: Date.now().toString(),
-        content: data.response,
-        isUser: false,
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const aiResponse = generateAIResponse(input, tasks);
+      
+      const aiMessage: ChatMessage = {
+        id: `ai-${Date.now()}`,
+        content: aiResponse,
+        sender: 'ai',
         timestamp: new Date()
       };
-
-      setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        content: 'Sorry, I encountered an error. Please try again.',
-        isUser: false,
+      
+      setMessages(prevMessages => [...prevMessages, aiMessage]);
+    } catch (err) {
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        content: "Sorry, I couldn't process your request. Please try again.",
+        sender: 'ai',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
+  
+  const generateAIResponse = (question: string, userTasks: Task[]): string => {
+    const lowercaseQuestion = question.toLowerCase();
 
+    if (lowercaseQuestion.includes('due today') || lowercaseQuestion.includes('due for today')) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const dueTasks = userTasks.filter(task => {
+        if (!task.dueDate) return false;
+        const dueDate = new Date(task.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate.getTime() === today.getTime();
+      });
+      
+      if (dueTasks.length === 0) {
+        return "You don't have any tasks due today. Enjoy your day!";
+      }
+
+      let response = `You have ${dueTasks.length} task${dueTasks.length === 1 ? '' : 's'} due today:\n\n`;
+      dueTasks.forEach((task, index) => {
+        response += `${index + 1}. ${task.title}${task.priority ? ` (${task.priority} priority)` : ''}\n`;
+      });
+      return response;
+    }
+
+    if (lowercaseQuestion.includes('high priority') || lowercaseQuestion.includes('important tasks')) {
+      const highPriorityTasks = userTasks.filter(task => task.priority === 'high' && !task.completed);
+      if (highPriorityTasks.length === 0) {
+        return "You don't have any high priority tasks at the moment.";
+      }
+
+      let response = `You have ${highPriorityTasks.length} high priority task${highPriorityTasks.length === 1 ? '' : 's'}:\n\n`;
+      highPriorityTasks.forEach((task, index) => {
+        response += `${index + 1}. ${task.title}${task.dueDate ? ` (Due: ${new Date(task.dueDate).toLocaleDateString()})` : ''}\n`;
+      });
+      return response;
+    }
+
+    if (lowercaseQuestion.includes('completed') || lowercaseQuestion.includes('finished')) {
+      const completedTasks = userTasks.filter(task => task.completed);
+      const recentlyCompleted = completedTasks.slice(-5).reverse();
+      if (completedTasks.length === 0) {
+        return "You haven't completed any tasks yet. Keep going!";
+      }
+
+      let response = `You've completed ${completedTasks.length} task${completedTasks.length === 1 ? '' : 's'} in total.\n\nMost recently completed:\n`;
+      recentlyCompleted.forEach((task, index) => {
+        response += `${index + 1}. ${task.title}\n`;
+      });
+      return response;
+    }
+
+    if (lowercaseQuestion.includes('overdue') || lowercaseQuestion.includes('late')) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const overdueTasks = userTasks.filter(task => {
+        if (!task.dueDate || task.completed) return false;
+        const dueDate = new Date(task.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate < today;
+      });
+
+      if (overdueTasks.length === 0) {
+        return "Great job! You don't have any overdue tasks.";
+      }
+
+      let response = `You have ${overdueTasks.length} overdue task${overdueTasks.length === 1 ? '' : 's'}:\n\n`;
+      overdueTasks.forEach((task, index) => {
+        response += `${index + 1}. ${task.title} (Due: ${new Date(task.dueDate!).toLocaleDateString()})\n`;
+      });
+      return response;
+    }
+
+    return "Sorry, I couldn't understand your question. Try asking about tasks that are due today, overdue, high priority, or completed.";
+  };
 
   return (
-    <Box sx={{ 
-      border: '1px solid',
-      borderColor: 'divider',
-      borderRadius: 2,
-      height: 400,
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <Box sx={{ 
-        p: 2,
-        bgcolor: 'background.paper',
-        borderBottom: '1px solid',
-        borderColor: 'divider'
-      }}>
-        <Typography variant="h6">Task Assistant</Typography>
-        <Typography variant="body2" color="text.secondary">
-          Ask about your tasks (e.g., "What's due today?")
-        </Typography>
+    <Paper elevation={3} sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Typography variant="h6" gutterBottom>Task Assistant</Typography>
+      <Divider />
+      <Box sx={{ flex: 1, overflowY: 'auto', my: 2 }}>
+        {messages.map(msg => (
+          <Box key={msg.id} display="flex" alignItems="flex-start" mb={2}>
+            <Avatar sx={{ bgcolor: msg.sender === 'ai' ? 'primary.main' : 'secondary.main', mr: 1 }}>
+              {msg.sender === 'ai' ? <SmartToyIcon /> : <PersonIcon />}
+            </Avatar>
+            <Paper elevation={1} sx={{ p: 1.5, maxWidth: '80%' }}>
+              <Typography variant="body2">{msg.content}</Typography>
+              <Typography variant="caption" color="text.secondary">{msg.timestamp.toLocaleTimeString()}</Typography>
+            </Paper>
+          </Box>
+        ))}
+        <div ref={messagesEndRef} />
       </Box>
-
-      <Box sx={{ 
-        flex: 1,
-        overflowY: 'auto',
-        p: 2,
-        bgcolor: 'background.default'
-      }}>
-        <List>
-          {messages.map((message) => (
-            <ListItem 
-              key={message.id}
-              sx={{
-                justifyContent: message.isUser ? 'flex-end' : 'flex-start',
-                alignItems: 'flex-start',
-                gap: 1
-              }}
-            >
-              {!message.isUser && (
-                <Avatar sx={{ 
-                  bgcolor: 'primary.main',
-                  width: 32,
-                  height: 32
-                }}>
-                  AI
-                </Avatar>
-              )}
-              
-              <Box sx={{
-                maxWidth: '70%',
-                bgcolor: message.isUser ? 'primary.main' : 'background.paper',
-                color: message.isUser ? 'primary.contrastText' : 'text.primary',
-                p: 1.5,
-                borderRadius: 2,
-                boxShadow: 1
-              }}>
-                <ListItemText
-                  primary={message.content}
-                  secondary={message.timestamp.toLocaleTimeString()}
-                  secondaryTypographyProps={{
-                    color: message.isUser ? 'primary.contrastText' : 'text.secondary'
-                  }}
-                />
-              </Box>
-
-              {message.isUser && (
-                <Avatar sx={{ 
-                  bgcolor: 'secondary.main',
-                  width: 32,
-                  height: 32
-                }}>
-                  U
-                </Avatar>
-              )}
-            </ListItem>
-          ))}
-          {isLoading && (
-            <ListItem sx={{ justifyContent: 'center' }}>
-              <CircularProgress size={24} />
-            </ListItem>
-          )}
-          <div ref={messagesEndRef} />
-        </List>
-      </Box>
-
-      <Box component="form" onSubmit={handleSubmit} sx={{ p: 2 }}>
+      <Divider />
+      <Box display="flex" alignItems="center" mt={1}>
         <TextField
           fullWidth
+          placeholder="Ask something about your tasks..."
           variant="outlined"
-          placeholder="Type your question..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          disabled={isLoading}
-          InputProps={{
-            endAdornment: (
-              <IconButton 
-                type="submit" 
-                disabled={!input.trim() || isLoading}
-              >
-                <Send />
-              </IconButton>
-            )
-          }}
+          onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
         />
+        <IconButton color="primary" onClick={handleSendMessage} disabled={loading}>
+          {loading ? <CircularProgress size={24} /> : <SendIcon />}
+        </IconButton>
       </Box>
-    </Box>
+    </Paper>
   );
 }
