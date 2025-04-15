@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { fetchTasks, createTask } from '../api/authApi'; 
-import { Task, TaskFilters, TaskPriority, TaskStatus } from './types';
+import { Task, TaskFilters } from '../types/types';
+import { fetchTasks, createTask } from '../api/taskApi';
 
 interface TaskContextType {
   tasks: Task[];
@@ -21,7 +21,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const load = async () => {
       setLoading(true);
       const data = await fetchTasks(filters);
-      setTasks(Array.isArray(data) ? data : []);
+      setTasks(data);
       setLoading(false);
     };
     load();

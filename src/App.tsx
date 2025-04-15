@@ -1,63 +1,34 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { CssBaseline, ThemeProvider } from "@mui/material";
+import theme from "./theme";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
 import { AuthProvider } from "./contexts/AuthContext";
-// import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-// import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-// import { CssBaseline, ThemeProvider } from '@mui/material';
-// // import SignupPage from './pages/SignupPage';
-// // import LoginPage from './pages/LoginPage';
-// // import HomePage from './pages/HomePage';
-// // import AIToolsPage from './pages/AIToolsPage';
-// // import ProtectedRoute from './components/ProtectedRoute';
-// // import Layout from './components/Layout';
-// import theme from './theme';
-
-// import { LocalizationProvider } from '@mui/x-date-pickers';
-// import { AdapterLuxon } from '@mui/x-date-pickers/AdapterLuxon';
-// import { TaskProvider } from './contexts/TaskProvider';
-
+import { TaskProvider } from './contexts/TaskContext';
 import SignupPage from "./pages/SignupPage";
-
-// // const queryClient = new QueryClient();
-
-// export default function App() {
-//   console.log("app");
-
-// //   return (
-// //     // <QueryClientProvider client={queryClient}>
-// //       <ThemeProvider theme={theme}>
-// //         <LocalizationProvider dateAdapter={AdapterLuxon}>
-// //           <CssBaseline />
-// //           <BrowserRouter>
-// //             <AuthProvider>
-// //               <TaskProvider>
-// //               <Routes>
-// //               {/* <Route path="/signup" element={<SignupPage />} /> */}
-// //               <Route path="/signup" element={<h1>Signup Route Works!</h1>} />
-
-// //                 {/* <Route path="/login" element={<LoginPage />} /> */}
-// // {/*
-// //                 <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}> */}
-// //                   {/* <Route path="/" element={<HomePage />} />
-// //                   <Route path="/ai-tools" element={<AIToolsPage />} /> */}
-// //                 {/* </Route> */}
-// //               </Routes>
-// //               </TaskProvider>
-// //             </AuthProvider>
-// //           </BrowserRouter>
-// //           <ReactQueryDevtools initialIsOpen={false} />
-// //         </LocalizationProvider>
-// //       </ThemeProvider>
-// //     // </QueryClientProvider>
-// //   );
-// // }
+import LoginPage from "./pages/LoginPage";
+import HomePage from "./pages/HomePage";
+import Layout from "./components/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const App = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/signup" element={<SignupPage />} />
-        </Routes>
+        <TaskProvider>
+          <LocalizationProvider dateAdapter={AdapterLuxon}>
+            <CssBaseline />
+            <ThemeProvider theme={theme}>
+              <Routes>
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                  <Route index element={<HomePage />} />
+                </Route>
+              </Routes>
+            </ThemeProvider>
+          </LocalizationProvider>
+        </TaskProvider>
       </AuthProvider>
     </BrowserRouter>
   );

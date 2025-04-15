@@ -36,17 +36,6 @@ export type TaskFilters = {
   search?: string;
 };
 
-export interface AIMessage {
-  id: string;
-  content: string;
-  isUser: boolean;
-  timestamp: Date;
-  metadata?: {
-    referencedTasks?: string[];
-    actionType?: 'query' | 'create' | 'update';
-  };
-}
-
 export interface APIResponse<T> {
   data?: T;
   error?: string;
